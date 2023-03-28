@@ -1,16 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <string.h>
-#include <errno.h>
-#include <signal.h>
-#include <stdbool.h>
 #include <mqueue.h>
 
-#define NbCapt 5
+#define NbVal 5
 #define NAME_MQ_LectToTri "/MQ_LectureToTri"
 #define NAME_MQ_TriToAffiche "/MQTriToAffichage"
 
@@ -24,14 +16,14 @@ int main()
 {
     pid_t lecture, affichage, tri;
 
-	int capteur[NbCapt][2] = {{1, 3},
+	int capteur[NbVal][2] = {{1, 3},
 						{2, 1},
 						{3, 6},
 						{4, 4},
 						{5, 2}};
 
 	mqd_t mqd;
-	mqd_t mqdAffichage;
+	mqd_t mqd2;
 
 
 	struct mq_attr attr;
@@ -41,24 +33,22 @@ int main()
 	attr.mq_curmsgs = 0; // nombre actuel de messages dans la file
 
 	// Creation la file d'attente
-	mqd = mq_open(NAME_MQ_LectToTri, O_CREAT | O_RDWR, 0666, &attr);
+	mqd = mq_open(NAME_MQ_LectToTri, O_CREAT, 0666, &attr);
 	if (mqd == (mqd_t) -1)
 	{
 		perror("mq_open Creation");
 		exit(EXIT_FAILURE);
 	}
 
-
-	mqdAffichage = mq_open(NAME_MQ_TriToAffiche, O_CREAT | O_RDWR, 0666, &attr);
+	mqd2 = mq_open(NAME_MQ_TriToAffiche, O_CREAT, 0666, &attr);
 	if (mqd == (mqd_t) -1)
 	{
-		perror("mq_open Creatiofn");
+		perror("mq_open Creation2");
 		exit(EXIT_FAILURE);
 	}
 
 	mq_close(mqd);
-	mq_close(mqdAffichage);
-
+	mq_close(mqd2);
 
     /*---------------------------------------------------
      * CREATION DU PROCESSUS LECTURE
@@ -80,7 +70,7 @@ int main()
 		struct data data;
 		int i;
 
-		mqd = mq_open(NAME_MQ_LectToTri, O_RDWR);
+		mqd = mq_open(NAME_MQ_LectToTri, O_WRONLY);
         if (mqd == (mqd_t) -1)
         {
             perror("mq_open Processus Lecture");
@@ -88,7 +78,7 @@ int main()
         }
 
 
-		for(i=0;i<NbCapt;i++)
+		for(i=0;i<NbVal;i++)
         {
 			data.capt=capteur[i][0];
 			data.valeur=capteur[i][1];
@@ -123,12 +113,12 @@ int main()
         /*---------------------------------------------------
          *  CODE PROCESSUS TRI
          -------------------------------------------------------*/
-		mqd_t mqd, mqdAffichage;
+		mqd_t mqd, mqd2;
 		ssize_t bytes_read;
 		struct data data;
 		int i;
 
-		mqd = mq_open(NAME_MQ_LectToTri, O_RDWR);
+		mqd = mq_open(NAME_MQ_LectToTri, O_RDONLY);
         if (mqd == (mqd_t) -1)
         {
             perror("mq_open Processus Tri");
@@ -136,15 +126,15 @@ int main()
         }
 
 
-		mqdAffichage = mq_open(NAME_MQ_TriToAffiche, O_RDWR);
-        if (mqdAffichage == (mqd_t) -1)
+		mqd2 = mq_open(NAME_MQ_TriToAffiche, O_WRONLY);
+        if (mqd2 == (mqd_t) -1)
         {
-            perror("mq_open Processus Lecture");
+            perror("mq_open Processus Tri2");
             exit(EXIT_FAILURE);
         }
 
 
-		for(i=0;i<NbCapt;i++)
+		for(i=0;i<NbVal;i++)
 		{
 			bytes_read = mq_receive(mqd, (char*)&data, sizeof(struct data), NULL);
             if (bytes_read == -1)
@@ -156,34 +146,18 @@ int main()
 
 			//tri
 
-			// for(j=0;j<NbCapt && x < valeur[j];j++);
 
-			// if(x >= valeur[j])
-			// {
-				// for(k=NbCapt;k>j;k--)
-					// valeur[k]=valeur[k-1];
-				// valeur[j]=x;
-			// }
-			// else
-				// valeur[NbCapt]=x;
+            // A faire capteur puis valeurs
 
-			if(mq_send(mqdAffichage, (const char*)&data, sizeof(struct data), 0) == -1)
+            //envoie un tableau après la boucle
+			if(mq_send(mqd2, (const char*)&data, sizeof(struct data), 0) == -1)
  			{
  				perror("mq_send Processus Tri");
  				exit(EXIT_FAILURE);
  			}
 		}
 
-		// for(i=0;i<NbCapt;i++)
- 		// {
- 			// if(mq_send(mqdAffichage, &valeur[i], sizeof(char), TriToAffichage) == -1)
- 			// {
- 				// perror("mq_send Processus Tri");
- 				// exit(EXIT_FAILURE);
- 			// }
- 		// }
-
-		mq_close(mqdAffichage);
+		mq_close(mqd2);
 		mq_close(mqd);
 
 		exit(0);
@@ -206,24 +180,24 @@ int main()
         *  CODE PROCESSUS Affichage
         ------------------------------------------------------*/
 
-		mqd_t mqdAffichage;
+		mqd_t mqd;
  		ssize_t bytes_read;
 		int i;
 		struct data data;
 
-		mqdAffichage = mq_open(NAME_MQ_TriToAffiche, O_RDWR);
+		mqd = mq_open(NAME_MQ_TriToAffiche, O_RDONLY);
         if (mqd == (mqd_t) -1)
         {
             perror("mq_open Processus Affichage");
             exit(EXIT_FAILURE);
         }
 
-		for(i=NbCapt;i>0;i--)
+		for(i=NbVal;i>0;i--)
  		{
- 			bytes_read = mq_receive(mqdAffichage, (char*)&data, sizeof(struct data), NULL);
+ 			bytes_read = mq_receive(mqd, (char*)&data, sizeof(struct data), NULL);
  			if (bytes_read == -1)
  			{
- 				perror("mq_receive Affichage");
+ 				perror("mq_receive Processus Affichage");
  				exit(EXIT_FAILURE);
  			}
 			printf("\nCapteur %d : %d\n", data.capt, data.valeur);
@@ -231,15 +205,7 @@ int main()
 
  		}
 
-
-		//affichage
-
-		// for(i=0;i<5;i++)
-		// {
-			// printf("\nCapteur %d = %c\n", i, valeur[i]);
-		// }
-
-		mq_close(mqdAffichage);
+		mq_close(mqd);
 		exit(0);
     }
 
