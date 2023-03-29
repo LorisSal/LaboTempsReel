@@ -18,19 +18,16 @@ int capteur[NbVal][2] = {{6, 3},
 						{4, 5}};
 
 void InsertionTriee(struct data *, struct data, int);
+void Affichage(struct data *);
 
 int main()
 {
     pid_t lecture, affichage, tri;
 
+    int i;
+
 	mqd_t mqd;
 	mqd_t mqd2;
-
-//	mq_unlink(NAME_MQ_LectToTri);
-//	mq_unlink(NAME_MQ_TriToAffiche);
-//
-//	pause();
-
 
 	struct mq_attr attr;
 	attr.mq_flags = 0; // pas de drapeaux
@@ -51,6 +48,12 @@ int main()
 	{
 		perror("mq_open Creation2");
 		exit(EXIT_FAILURE);
+	}
+	printf("Affichage Tableau capteur desordonne : \n");
+
+	for(i=0;i<NbVal;i++)
+	{
+		printf("Capteur %d : %d\n", capteur[i][0], capteur[i][1]);
 	}
 
 	mq_close(mqd);
@@ -147,15 +150,13 @@ int main()
                 exit(EXIT_FAILURE);
             }
 
-
-			//tri
-
-
 			InsertionTriee(tab, data, size);
 
 			size++;
 
 		}
+
+		//Affichage(tab);
 
 		for(i=0;i<NbVal;i++)
 		{
@@ -190,6 +191,7 @@ int main()
         ------------------------------------------------------*/
  		ssize_t bytes_read;
 		int i;
+		struct data tab[NbVal]={{0}};
 		struct data data;
 
 		mqd = mq_open(NAME_MQ_TriToAffiche, O_RDONLY);
@@ -199,7 +201,7 @@ int main()
             exit(EXIT_FAILURE);
         }
 
-		for(i=NbVal;i>0;i--)
+		for(i=0;i<NbVal;i++)
  		{
  			bytes_read = mq_receive(mqd, (char*)&data, sizeof(struct data), NULL);
  			if (bytes_read == -1)
@@ -207,10 +209,13 @@ int main()
  				perror("mq_receive Processus Affichage");
  				exit(EXIT_FAILURE);
  			}
-			printf("\nCapteur %d : %d\n", data.capt, data.valeur);
-
+ 			printf("\nici : %d : %d", data.capt, data.valeur);
 
  		}
+
+		printf("\n\nAffichage capteurs Trie\n");
+
+		Affichage(tab);
 
 		mq_close(mqd);
 		exit(0);
@@ -238,8 +243,6 @@ int main()
 
 void InsertionTriee(struct data *ptab, struct data x, int size)
 {
-	printf("Insertion\n");
-
 	int i,j;
 
 	struct data *tmp;
@@ -252,7 +255,7 @@ void InsertionTriee(struct data *ptab, struct data x, int size)
 	{
 		*ptab=x;
 	}
-	else if(x.capt > ptab->capt)
+	else if(x.capt < ptab->capt)
 	{
 		for(j=size, ptab=tmp+size-1; j>i ;j--,ptab--)
 		{
@@ -272,5 +275,16 @@ void InsertionTriee(struct data *ptab, struct data x, int size)
 			*(ptab+1)=*ptab;
 		}
 		*(ptab+1)=x;
+	}
+	ptab=tmp;
+}
+
+void Affichage(struct data *ptab)
+{
+	int i;
+
+	for(i=0;i<NbVal;i++)
+	{
+		printf("\nCapteur %d : %d\n",ptab->capt, ptab->valeur);
 	}
 }
