@@ -11,12 +11,6 @@ struct data {
     int valeur;
 };
 
-int capteur[NbVal][2] = {{6, 3},
-						{2, 1},
-						{4, 4},
-						{4, 3},
-						{4, 5}};
-
 void InsertionTriee(struct data *, struct data, int);
 void Affichage(struct data *);
 
@@ -24,24 +18,48 @@ int main()
 {
     pid_t lecture, affichage, tri;
 
-    int i;
-
 	mqd_t mqd;
 	mqd_t mqd2;
 
 	struct mq_attr attr;
 	attr.mq_flags = 0; // pas de drapeaux
-	attr.mq_maxmsg = 50; // nombre maximal de messages dans la file
+	attr.mq_maxmsg = NbVal; // nombre maximal de messages dans la file
 	attr.mq_msgsize = sizeof(struct data); // taille maximale de chaque message
 	attr.mq_curmsgs = 0; // nombre actuel de messages dans la file
 
-	// Creation la file d'attente
+
+	/* =================== CREATION D'UNE MQ =========================
+	 *
+	 * NOM : stocké dasn la macro NAME_MQ_LectToTri
+	 * FLAGS : O_CREAT
+	 * MODE : 00660 (lecture/écriture du propriétaire et du groupe)
+	 *
+	 * --------------- ATTRIBUTS ---------------
+	 * TAILLE MAX D'UN SLOT : sizeof(struct data)
+	 * NOMBRE DE SLOT MAX : NbVal
+	 *
+	 * =============================================================== */
 	mqd = mq_open(NAME_MQ_LectToTri, O_CREAT, 0666, &attr);
 	if (mqd == (mqd_t) -1)
 	{
 		perror("mq_open Creation");
 		exit(EXIT_FAILURE);
 	}
+
+	mq_close(mqd);
+
+
+	/* =================== CREATION D'UNE MQ =========================
+	 *
+	 * NOM : stocké dasn la macro NAME_MQ_TritToAffiche
+	 * FLAGS : O_CREAT
+	 * MODE : 00660 (lecture/écriture du propriétaire et du groupe)
+	 *
+	 * --------------- ATTRIBUTS ---------------
+	 * TAILLE MAX D'UN SLOT : sizeof(struct data)
+	 * NOMBRE DE SLOT MAX : NbVal
+	 *
+	 * =============================================================== */
 
 	mqd2 = mq_open(NAME_MQ_TriToAffiche, O_CREAT, 0666, &attr);
 	if (mqd == (mqd_t) -1)
@@ -50,16 +68,6 @@ int main()
 		exit(EXIT_FAILURE);
 	}
 
-
-	printf("Affichage Tableau capteur desordonne : \n");
-
-	for(i=0;i<NbVal;i++)
-	{
-		printf("\nCapteur %d : %d\n", capteur[i][0], capteur[i][1]);
-	}
-
-
-	mq_close(mqd);
 	mq_close(mqd2);
 
     /*---------------------------------------------------
@@ -79,6 +87,19 @@ int main()
          -------------------------------------------------------*/
 		struct data data;
 		int i;
+		int capteur[NbVal][2] = {{6, 4},
+								{2, 1},
+								{4, 4},
+								{4, 3},
+								{4, 5}};
+
+		printf("Affichage Tableau capteur desordonne : \n");
+
+		for(i=0;i<NbVal;i++)
+		{
+			printf("\nCapteur %d : %d\n", capteur[i][0], capteur[i][1]);
+		}
+
 
 		mqd = mq_open(NAME_MQ_LectToTri, O_WRONLY);
         if (mqd == (mqd_t) -1)
@@ -159,8 +180,6 @@ int main()
 
 		}
 
-		//Affichage(tab);
-
 		for(i=0;i<NbVal;i++)
 		{
 			if(mq_send(mqd2, (const char*)&tab[i], sizeof(struct data), 0) == -1)
@@ -188,7 +207,6 @@ int main()
  	}
     if(!affichage)
     {
-
 		/*---------------------------------------------------
         *  CODE PROCESSUS Affichage
         ------------------------------------------------------*/
@@ -265,7 +283,7 @@ void InsertionTriee(struct data *ptab, struct data x, int size)
 	}
 	else
 	{
-		while(x.valeur<ptab->valeur)
+		while(x.valeur>ptab->valeur && x.capt == ptab->capt)
 		{
 			i++;
 			ptab++;
@@ -276,7 +294,6 @@ void InsertionTriee(struct data *ptab, struct data x, int size)
 		}
 		*(ptab+1)=x;
 	}
-	ptab=tmp;
 }
 
 void Affichage(struct data *ptab)
