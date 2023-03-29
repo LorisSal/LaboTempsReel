@@ -11,11 +11,13 @@ struct data {
     int valeur;
 };
 
-int capteur[NbVal][2] = {{1, 3},
+int capteur[NbVal][2] = {{6, 3},
 						{2, 1},
-						{3, 6},
 						{4, 4},
-						{5, 2}};
+						{4, 3},
+						{4, 5}};
+
+void InsertionTriee(struct data *, struct data, int);
 
 int main()
 {
@@ -117,8 +119,8 @@ int main()
          -------------------------------------------------------*/
 		ssize_t bytes_read;
 		struct data data;
-		struct data tab[NbVal];
-		int i, size;
+		struct data tab[NbVal]={{0}};
+		int i, size=0;
 
 		mqd = mq_open(NAME_MQ_LectToTri, O_RDONLY);
         if (mqd == (mqd_t) -1)
@@ -149,12 +151,15 @@ int main()
 			//tri
 
 
+			InsertionTriee(tab, data, size);
 
+			size++;
 
-            // A faire capteur puis valeurs
+		}
 
-            //envoie un tableau après la boucle
-			if(mq_send(mqd2, (const char*)&data, sizeof(struct data), 0) == -1)
+		for(i=0;i<NbVal;i++)
+		{
+			if(mq_send(mqd2, (const char*)&tab[i], sizeof(struct data), 0) == -1)
  			{
  				perror("mq_send Processus Tri");
  				exit(EXIT_FAILURE);
@@ -229,3 +234,43 @@ int main()
 	exit(0);
 
  }
+
+
+void InsertionTriee(struct data *ptab, struct data x, int size)
+{
+	printf("Insertion\n");
+
+	int i,j;
+
+	struct data *tmp;
+	tmp=ptab;
+
+
+	for(i=0;i<size && x.capt>ptab->capt;i++,ptab++);
+
+	if(i==size)
+	{
+		*ptab=x;
+	}
+	else if(x.capt > ptab->capt)
+	{
+		for(j=size, ptab=tmp+size-1; j>i ;j--,ptab--)
+		{
+			*(ptab+1)=*ptab;
+		}
+		*(ptab+1)=x;
+	}
+	else
+	{
+		while(x.valeur<ptab->valeur)
+		{
+			i++;
+			ptab++;
+		}
+		for(j=size, ptab=tmp+size-1; j>i ;j--,ptab--)
+		{
+			*(ptab+1)=*ptab;
+		}
+		*(ptab+1)=x;
+	}
+}
