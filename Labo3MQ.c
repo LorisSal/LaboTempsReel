@@ -4,26 +4,30 @@
 
 #define NbVal 5
 #define NAME_MQ_LectToTri "/MQ_LectureToTri"
-#define NAME_MQ_TriToAffiche "/MQTriToAffichage"
+#define NAME_MQ_TriToAffiche "/MQ_TriToAffichage"
 
 struct data {
     int capt;
     int valeur;
 };
 
-
-int main()
-{
-    pid_t lecture, affichage, tri;
-
-	int capteur[NbVal][2] = {{1, 3},
+int capteur[NbVal][2] = {{1, 3},
 						{2, 1},
 						{3, 6},
 						{4, 4},
 						{5, 2}};
 
+int main()
+{
+    pid_t lecture, affichage, tri;
+
 	mqd_t mqd;
 	mqd_t mqd2;
+
+//	mq_unlink(NAME_MQ_LectToTri);
+//	mq_unlink(NAME_MQ_TriToAffiche);
+//
+//	pause();
 
 
 	struct mq_attr attr;
@@ -65,8 +69,6 @@ int main()
         /*---------------------------------------------------
          *  CODE PROCESSUS LECTURE
          -------------------------------------------------------*/
-
-		mqd_t mqd;
 		struct data data;
 		int i;
 
@@ -113,10 +115,10 @@ int main()
         /*---------------------------------------------------
          *  CODE PROCESSUS TRI
          -------------------------------------------------------*/
-		mqd_t mqd, mqd2;
 		ssize_t bytes_read;
 		struct data data;
-		int i;
+		struct data tab[NbVal];
+		int i, size;
 
 		mqd = mq_open(NAME_MQ_LectToTri, O_RDONLY);
         if (mqd == (mqd_t) -1)
@@ -145,6 +147,8 @@ int main()
 
 
 			//tri
+
+
 
 
             // A faire capteur puis valeurs
@@ -179,8 +183,6 @@ int main()
 		/*---------------------------------------------------
         *  CODE PROCESSUS Affichage
         ------------------------------------------------------*/
-
-		mqd_t mqd;
  		ssize_t bytes_read;
 		int i;
 		struct data data;
