@@ -49,12 +49,15 @@ int main()
 		perror("mq_open Creation2");
 		exit(EXIT_FAILURE);
 	}
+
+
 	printf("Affichage Tableau capteur desordonne : \n");
 
 	for(i=0;i<NbVal;i++)
 	{
-		printf("Capteur %d : %d\n", capteur[i][0], capteur[i][1]);
+		printf("\nCapteur %d : %d\n", capteur[i][0], capteur[i][1]);
 	}
+
 
 	mq_close(mqd);
 	mq_close(mqd2);
@@ -192,7 +195,6 @@ int main()
  		ssize_t bytes_read;
 		int i;
 		struct data tab[NbVal]={{0}};
-		struct data data;
 
 		mqd = mq_open(NAME_MQ_TriToAffiche, O_RDONLY);
         if (mqd == (mqd_t) -1)
@@ -203,14 +205,12 @@ int main()
 
 		for(i=0;i<NbVal;i++)
  		{
- 			bytes_read = mq_receive(mqd, (char*)&data, sizeof(struct data), NULL);
+ 			bytes_read = mq_receive(mqd, (char*)&tab[i], sizeof(struct data), NULL);
  			if (bytes_read == -1)
  			{
  				perror("mq_receive Processus Affichage");
  				exit(EXIT_FAILURE);
  			}
- 			printf("\nici : %d : %d", data.capt, data.valeur);
-
  		}
 
 		printf("\n\nAffichage capteurs Trie\n");
@@ -283,7 +283,7 @@ void Affichage(struct data *ptab)
 {
 	int i;
 
-	for(i=0;i<NbVal;i++)
+	for(i=0;i<NbVal;i++,ptab++)
 	{
 		printf("\nCapteur %d : %d\n",ptab->capt, ptab->valeur);
 	}
